@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -10,6 +11,8 @@ import (
 	"github.com/hectormalot/omgo"
 	"github.com/maltegrosse/go-geoclue2"
 )
+
+var ErrLocationNotAccurate = errors.New("location service is not accurate enough")
 
 func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
@@ -25,7 +28,7 @@ func main() {
 		_, _ = fmt.Fprintf(os.Stderr, "failed to get latitude/longitude: %s\n", err)
 		os.Exit(1)
 	}
-	address, err := nominatim.ReverseGeocode(lat, long, "english")
+	address, err := nominatim.ReverseGeocode(lat, long, "german")
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "failed to reverse geocode: %s\n", err)
 		os.Exit(1)
@@ -44,7 +47,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("Data at %s (lat: %f, lon: %f): %+v\n", address.City, lat, long, current)
+	fmt.Printf("Temperature in %s: %.1f°C\n", address.City, current.Temperature)
 }
 
 func getLocation() (float64, float64, error) {
@@ -66,13 +69,14 @@ func getLocation() (float64, float64, error) {
 	}
 
 	// Get RequestedAccuracyLevel
-	/*
-		level, err := client.GetRequestedAccuracyLevel()
-		if err != nil {
-			return 0,0, fmt.Errorf("failed to get requested accuracy level: %w", err)
-		}
-
-	*/
+	level, err := client.GetRequestedAccuracyLevel()
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to get requested accuracy level: %w", err)
+	}
+	fmt.Printf("Accuary: %s\n", level.String())
+	if level < 4 {
+		return 0, 0, ErrLocationNotAccurate
+	}
 
 	if err = client.Start(); err != nil {
 		return 0, 0, fmt.Errorf("failed to start client: %w", err)
