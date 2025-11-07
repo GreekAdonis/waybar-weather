@@ -18,6 +18,11 @@ const (
 	OutputClass = "waybar-weather"
 )
 
+var (
+	WeatherUpdateInterval = time.Minute * 5
+	OutputInterval        = time.Second * 30
+)
+
 type outputData struct {
 	Text    string `json:"text"`
 	Tooltip string `json:"tooltip"`
@@ -69,7 +74,7 @@ func New() (*Service, error) {
 
 func (s *Service) Run(ctx context.Context) error {
 	// Start scheduled jobs
-	_, err := s.scheduler.NewJob(gocron.DurationJob(time.Second*5),
+	_, err := s.scheduler.NewJob(gocron.DurationJob(WeatherUpdateInterval),
 		gocron.NewTask(s.printWeather),
 		gocron.WithContext(ctx),
 		gocron.WithSingletonMode(gocron.LimitModeReschedule),
@@ -79,7 +84,7 @@ func (s *Service) Run(ctx context.Context) error {
 		return fmt.Errorf("failed to create weather data output job: %w", err)
 	}
 
-	_, err = s.scheduler.NewJob(gocron.DurationJob(time.Second*5),
+	_, err = s.scheduler.NewJob(gocron.DurationJob(OutputInterval),
 		gocron.NewTask(s.fetchWeather),
 		gocron.WithContext(ctx),
 		gocron.WithSingletonMode(gocron.LimitModeReschedule),
@@ -91,7 +96,7 @@ func (s *Service) Run(ctx context.Context) error {
 	s.scheduler.Start()
 
 	// Initial geolocation lookup
-	if err := s.geoclient.Start(); err != nil {
+	if err = s.geoclient.Start(); err != nil {
 		return fmt.Errorf("failed to start geoclue client: %w", err)
 	}
 	latitude, longitude, err := s.geoLocation()
@@ -126,11 +131,11 @@ func (s *Service) printWeather(context.Context) {
 	}
 
 	output := outputData{
-		Text: fmt.Sprintf("%s: %s %.1f°C",
-			s.address.City,
+		Text: fmt.Sprintf("%s %.1f°C",
 			WMOWeatherIcons[s.weather.WeatherCode][dayOrNight],
 			s.weather.Temperature),
-		Tooltip: fmt.Sprintf("Location: %s, %s\n🌅 %s\n🌇 %s\nLast update: %s",
+		Tooltip: fmt.Sprintf("Condition: %s\nLocation: %s, %s\nSunrise: %s\nSunset: %s\nLast update: %s",
+			WMOWeatherCodes[s.weather.WeatherCode],
 			s.address.City, s.address.Country,
 			s.sunriseTime.Format("15:04"),
 			s.sunsetTime.Format("15:04"),

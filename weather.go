@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"time"
 
 	"github.com/hectormalot/omgo"
 )
@@ -80,7 +81,10 @@ func (s *Service) fetchWeather(ctx context.Context) {
 		return
 	}
 
-	current, err := s.omclient.CurrentWeather(ctx, s.location, &omgo.Options{})
+	tz, _ := time.Now().Zone()
+	current, err := s.omclient.CurrentWeather(ctx, s.location, &omgo.Options{
+		Timezone: tz,
+	})
 	if err != nil {
 		s.logger.Error("failed to get current weather data", logError(err))
 		return

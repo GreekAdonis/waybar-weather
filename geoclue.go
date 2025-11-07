@@ -61,7 +61,7 @@ func RegisterGeoClue() (geoclue2.GeoclueClient, error) {
 	if err = client.SetDesktopId(GeoClueDesktopID); err != nil {
 		return nil, fmt.Errorf("failed to set desktop id: %w", err)
 	}
-	if err = client.SetRequestedAccuracyLevel(geoclue2.GClueAccuracyLevelCity); err != nil {
+	if err = client.SetRequestedAccuracyLevel(geoclue2.GClueAccuracyLevelExact); err != nil {
 		return nil, fmt.Errorf("failed to set requested accuracy availLevel: %w", err)
 	}
 
@@ -158,6 +158,12 @@ func (s *Service) updateLocation(latitude, longitude float64) error {
 	s.isDayTime = false
 	if now.After(sunriseTime) && now.Before(sunsetTime) {
 		s.isDayTime = true
+	}
+
+	for _, job := range s.scheduler.Jobs() {
+		if err = job.RunNow(); err != nil {
+			s.logger.Error("failed to run scheduled job", logError(err))
+		}
 	}
 
 	return nil
