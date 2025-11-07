@@ -1,0 +1,130 @@
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"sync"
+	"time"
+
+	"github.com/doppiogancio/go-nominatim/shared"
+	"github.com/go-co-op/gocron/v2"
+	"github.com/hectormalot/omgo"
+	"github.com/maltegrosse/go-geoclue2"
+)
+
+const (
+	OutputClass = "waybar-weather"
+)
+
+type outputData struct {
+	Text    string `json:"text"`
+	Tooltip string `json:"tooltip"`
+	Class   string `json:"class"`
+}
+
+type Service struct {
+	scheduler gocron.Scheduler
+	geoclient geoclue2.GeoclueClient
+	omclient  omgo.Client
+	logger    *logger
+
+	locationLock sync.RWMutex
+	address      *shared.Address
+	location     omgo.Location
+
+	weatherLock sync.RWMutex
+	weather     omgo.CurrentWeather
+}
+
+func New() (*Service, error) {
+	geoclient, err := RegisterGeoClue()
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "failed to register geoclue client: %s\n", err)
+		os.Exit(1)
+	}
+
+	scheduler, err := gocron.NewScheduler()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create scheduler: %w", err)
+	}
+
+	omclient, err := omgo.NewClient()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Open-Meteo client: %w", err)
+	}
+
+	return &Service{
+		scheduler: scheduler,
+		geoclient: geoclient,
+		omclient:  omclient,
+		logger:    newLogger(),
+	}, nil
+}
+
+func (s *Service) Run(ctx context.Context) error {
+	// Start scheduled jobs
+	_, err := s.scheduler.NewJob(gocron.DurationJob(time.Second*5),
+		gocron.NewTask(s.printWeather),
+		gocron.WithContext(ctx),
+		gocron.WithSingletonMode(gocron.LimitModeReschedule),
+		gocron.WithName("weatherdata_output_job"),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create weather data output job: %w", err)
+	}
+
+	_, err = s.scheduler.NewJob(gocron.DurationJob(time.Second*5),
+		gocron.NewTask(s.fetchWeather),
+		gocron.WithContext(ctx),
+		gocron.WithSingletonMode(gocron.LimitModeReschedule),
+		gocron.WithName("weather_update_job"),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create weather update job: %w", err)
+	}
+	s.scheduler.Start()
+
+	// Initial geolocation lookup
+	if err := s.geoclient.Start(); err != nil {
+		return fmt.Errorf("failed to start geoclue client: %w", err)
+	}
+	latitude, longitude, err := s.geoLocation()
+	if err != nil {
+		s.logger.Error("failed to get initial geo location", logError(err))
+	}
+	if err = s.updateLocation(latitude, longitude); err != nil {
+		s.logger.Error("failed to update service geo location", logError(err))
+	}
+
+	// Subscribe to location updates
+	go s.subscribeLocationUpdates()
+
+	// Wait for the context to cancel
+	<-ctx.Done()
+	return s.scheduler.Shutdown()
+}
+
+func (s *Service) printWeather(context.Context) {
+	s.locationLock.RLock()
+	defer s.locationLock.RUnlock()
+	s.weatherLock.RLock()
+	defer s.weatherLock.RUnlock()
+
+	if s.address == nil {
+		return
+	}
+
+	output := outputData{
+		Text: fmt.Sprintf("%s, %s %.1f°C", s.address.City, WMOWeatherIcons[s.weather.WeatherCode]["day"],
+			s.weather.Temperature),
+		Tooltip: fmt.Sprintf("Location: %s, %s\nLast update: %s", s.address.City, s.address.Country,
+			s.weather.Time.Format("2006-01-02 15:04")),
+		Class: OutputClass,
+	}
+
+	if err := json.NewEncoder(os.Stdout).Encode(output); err != nil {
+		s.logger.Error("failed to encode weather data", logError(err))
+	}
+}
