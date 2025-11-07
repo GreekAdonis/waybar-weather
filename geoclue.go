@@ -21,9 +21,7 @@ const (
 	GeoClueDesktopID     = "waybar-weather"
 )
 
-var (
-	ErrLocationNotAccurate = errors.New("location service is not accurate enough")
-)
+var ErrLocationNotAccurate = errors.New("location service is not accurate enough")
 
 func geoClueAgentIsRunning(ctx context.Context) (isRunning bool, err error) {
 	var list []string
@@ -136,7 +134,7 @@ func (s *Service) updateLocation(latitude, longitude float64) error {
 		return nil
 	}
 
-	address, err := nominatim.ReverseGeocode(latitude, longitude, "german")
+	address, err := nominatim.ReverseGeocode(latitude, longitude, s.config.Locale)
 	if err != nil {
 		return fmt.Errorf("failed reverse geocode coordinates: %w", err)
 	}

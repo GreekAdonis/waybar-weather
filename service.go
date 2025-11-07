@@ -30,10 +30,11 @@ type outputData struct {
 }
 
 type Service struct {
-	scheduler gocron.Scheduler
+	config    *config
 	geoclient geoclue2.GeoclueClient
-	omclient  omgo.Client
 	logger    *logger
+	omclient  omgo.Client
+	scheduler gocron.Scheduler
 
 	locationLock sync.RWMutex
 	address      *shared.Address
@@ -47,7 +48,7 @@ type Service struct {
 	weather      omgo.CurrentWeather
 }
 
-func New() (*Service, error) {
+func New(config *config) (*Service, error) {
 	geoclient, err := RegisterGeoClue()
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "failed to register geoclue client: %s\n", err)
@@ -65,10 +66,11 @@ func New() (*Service, error) {
 	}
 
 	return &Service{
-		scheduler: scheduler,
+		config:    config,
+		logger:    newLogger(),
 		geoclient: geoclient,
 		omclient:  omclient,
-		logger:    newLogger(),
+		scheduler: scheduler,
 	}, nil
 }
 
@@ -130,16 +132,24 @@ func (s *Service) printWeather(context.Context) {
 		dayOrNight = "night"
 	}
 
+	tempUnit := "°C"
+	if s.config.Units == "imperial" {
+		tempUnit = "°F"
+	}
+
 	output := outputData{
-		Text: fmt.Sprintf("%s %.1f°C",
+		Text: fmt.Sprintf("%s %.1f%s",
 			WMOWeatherIcons[s.weather.WeatherCode][dayOrNight],
-			s.weather.Temperature),
+			s.weather.Temperature,
+			tempUnit,
+		),
 		Tooltip: fmt.Sprintf("Condition: %s\nLocation: %s, %s\nSunrise: %s\nSunset: %s\nLast update: %s",
 			WMOWeatherCodes[s.weather.WeatherCode],
 			s.address.City, s.address.Country,
-			s.sunriseTime.Format("15:04"),
-			s.sunsetTime.Format("15:04"),
-			s.weather.Time.Format("2006-01-02 15:04")),
+			s.sunriseTime.Format("2006-01-02 15:04"),
+			s.sunsetTime.Format("2006-01-02 15:04"),
+			s.weather.Time.Format("2006-01-02 15:04"),
+		),
 		Class: OutputClass,
 	}
 

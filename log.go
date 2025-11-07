@@ -10,7 +10,7 @@ type logger struct {
 }
 
 func newLogger() *logger {
-	var output = os.Stderr
+	output := os.Stderr
 	log := slog.New(
 		slog.NewTextHandler(output,
 			&slog.HandlerOptions{

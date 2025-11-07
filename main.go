@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"flag"
+	"log/slog"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 )
 
@@ -12,7 +15,27 @@ func main() {
 		syscall.SIGABRT, os.Interrupt)
 	defer cancel()
 
+	// Initialize logger
 	log := newLogger()
+
+	// Read config
+	confPath := flag.String("config", "", "path to the config file")
+	flag.Parse()
+	conf, err := newConfig()
+	if err != nil {
+		log.Error("failed to load config", logError(err))
+		os.Exit(1)
+	}
+	if *confPath != "" {
+		file := filepath.Base(*confPath)
+		path := filepath.Dir(*confPath)
+		conf, err = newConfigFromFile(path, file)
+		if err != nil {
+			log.Error("failed to load config from file", logError(err))
+			os.Exit(1)
+		}
+	}
+	log.Info("config found", slog.Any("config", conf))
 
 	// We need a running geoclue agent
 	isRunning, err := geoClueAgentIsRunning(ctx)
@@ -26,7 +49,7 @@ func main() {
 	}
 
 	// Initialize the service
-	service, err := New()
+	service, err := New(conf)
 	if err != nil {
 		log.Error("failed to initialize waybar-weather service", logError(err))
 		os.Exit(1)

@@ -82,9 +82,19 @@ func (s *Service) fetchWeather(ctx context.Context) {
 	}
 
 	tz, _ := time.Now().Zone()
-	current, err := s.omclient.CurrentWeather(ctx, s.location, &omgo.Options{
-		Timezone: tz,
-	})
+	opts := &omgo.Options{Timezone: tz}
+	switch s.config.Units {
+	case "metric":
+		opts.TemperatureUnit = "celsius"
+		opts.PrecipitationUnit = "mm"
+		opts.WindspeedUnit = "kmh"
+	case "imperial":
+		opts.TemperatureUnit = "fahrenheit"
+		opts.PrecipitationUnit = "inch"
+		opts.WindspeedUnit = "mph"
+	}
+
+	current, err := s.omclient.CurrentWeather(ctx, s.location, opts)
 	if err != nil {
 		s.logger.Error("failed to get current weather data", logError(err))
 		return
