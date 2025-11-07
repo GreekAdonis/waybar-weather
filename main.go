@@ -16,7 +16,7 @@ func main() {
 	defer cancel()
 
 	// Initialize logger
-	log := newLogger()
+	log := newLogger(slog.LevelError)
 
 	// Read config
 	confPath := flag.String("config", "", "path to the config file")
@@ -35,7 +35,7 @@ func main() {
 			os.Exit(1)
 		}
 	}
-	log.Info("config found", slog.Any("config", conf))
+	log = newLogger(conf.LogLevel)
 
 	// We need a running geoclue agent
 	isRunning, err := geoClueAgentIsRunning(ctx)
@@ -49,7 +49,7 @@ func main() {
 	}
 
 	// Initialize the service
-	service, err := New(conf)
+	service, err := New(conf, log)
 	if err != nil {
 		log.Error("failed to initialize waybar-weather service", logError(err))
 		os.Exit(1)

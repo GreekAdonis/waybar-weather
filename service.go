@@ -48,7 +48,7 @@ type Service struct {
 	weather      omgo.CurrentWeather
 }
 
-func New(config *config) (*Service, error) {
+func New(config *config, log *logger) (*Service, error) {
 	geoclient, err := RegisterGeoClue()
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "failed to register geoclue client: %s\n", err)
@@ -67,7 +67,7 @@ func New(config *config) (*Service, error) {
 
 	return &Service{
 		config:    config,
-		logger:    newLogger(),
+		logger:    log,
 		geoclient: geoclient,
 		omclient:  omclient,
 		scheduler: scheduler,

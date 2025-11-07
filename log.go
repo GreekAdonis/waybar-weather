@@ -9,16 +9,9 @@ type logger struct {
 	*slog.Logger
 }
 
-func newLogger() *logger {
+func newLogger(level slog.Level) *logger {
 	output := os.Stderr
-	log := slog.New(
-		slog.NewTextHandler(output,
-			&slog.HandlerOptions{
-				Level: slog.LevelDebug,
-			},
-		),
-	)
-	return &logger{log}
+	return &logger{slog.New(slog.NewTextHandler(output, &slog.HandlerOptions{Level: level}))}
 }
 
 func logError(err error) slog.Attr {

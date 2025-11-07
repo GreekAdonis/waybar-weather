@@ -4,3 +4,10 @@ units = "imperial"
 ## Locale used for geo location services (if empty, tries to automatically get
 ## it from the LC_MESSAGES environment variable)
 #locale = "en-US"
+
+## Log level used for informational/error messages
+## DEBUG = -4
+## INFO = 0
+## WARN = 4
+## ERROR = 8
+loglevel = 0

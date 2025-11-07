@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,8 +14,9 @@ const configEnv = "WAYBARWEATHER"
 
 // config represents the application's configuration structure.
 type config struct {
-	Units  string `fig:"units" default:"metric"`
-	Locale string `fig:"locale"`
+	Units    string     `fig:"units" default:"metric"`
+	Locale   string     `fig:"locale"`
+	LogLevel slog.Level `fig:"loglevel" default:"0"`
 }
 
 func newConfigFromFile(path, file string) (*config, error) {
