@@ -1,0 +1,6 @@
+## Units used for weather data (allowed values "metric" or "imperial")
+units = "imperial"
+
+## Locale used for geo location services (if empty, tries to automatically get
+## it from the LC_MESSAGES environment variable)
+#locale = "en-US"
