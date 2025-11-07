@@ -2,17 +2,6 @@
 
 An Open-Meteo module implementation for [Waybar](https://github.com/Alexays/Waybar)
 
-## Table of Contents
-
-* [About](#about)
-* [Features](#features)
-* [Requirements](#requirements)
-* [Installation](#installation)
-* [Configuration](#configuration)
-* [Usage](#usage)
-* [Development & Contributing](#development-contributing)
-* [License](#license)
-
 ## About
 
 `waybar-weather` is a small Go-based module that fetches weather data from the Open‑Meteo API 
