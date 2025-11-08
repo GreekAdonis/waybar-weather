@@ -17,6 +17,8 @@ import (
 	"syscall"
 )
 
+const VERSION = "0.1.1"
+
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGKILL,
 		syscall.SIGABRT, os.Interrupt)
@@ -63,7 +65,7 @@ func main() {
 	}
 
 	// Start the service loop
-	log.Info("starting waybar-weather service")
+	log.Info("starting waybar-weather service", slog.String("version", VERSION))
 	if err = service.Run(ctx); err != nil {
 		log.Error("failed to start waybar-weather service", logError(err))
 	}
