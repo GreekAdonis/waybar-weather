@@ -17,7 +17,7 @@ import (
 	"syscall"
 )
 
-const VERSION = "0.1.1"
+const VERSION = "0.1.2"
 
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGKILL,
@@ -45,6 +45,7 @@ func main() {
 		}
 	}
 	log = newLogger(conf.LogLevel)
+	log.Debug("weather mode", slog.String("mode", conf.WeatherMode))
 
 	// We need a running geoclue agent
 	isRunning, err := geoClueAgentIsRunning(ctx)

@@ -34,9 +34,11 @@ to determine your current location and fetches weather data for that location.
 
 ### Using Pre-Built Binary
 Pre-Built binaries are automatically built whenever a new release is created. Each release
-holds binaries for several different Linux distributions. Each file is digitally signed via GPG. 
-After downloading the corresponding file, make sure that the file is verified with the GPG 
-signature. The public GPG key is: ["Winni Neessen" (Software signing key) <wn@neessen.dev>](https://keys.openpgp.org/vks/v1/by-fingerprint/10B5700F5ECCB06532CEC873C3D38948DA536E89)
+holds binaries for several different Linux distributions. A checksum of each file is created
+and stored in a combined checksums file. This checksums file is digitally signed via GPG. 
+After downloading the corresponding file, make sure to also download the checksums file and its
+corresponding signature file and verify that the checksums and signatures match.
+The public GPG key is: ["Winni Neessen" (Software signing key) <wn@neessen.dev>](https://keys.openpgp.org/vks/v1/by-fingerprint/10B5700F5ECCB06532CEC873C3D38948DA536E89)
 
 ### From Source
 To build from source, you require a working Go environment. Go 1.25+ is required.
