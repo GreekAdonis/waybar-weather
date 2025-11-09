@@ -51,6 +51,9 @@ func main() {
 	log = newLogger(conf.LogLevel)
 	log.Debug("weather mode", slog.String("mode", conf.WeatherMode))
 
+	geolocate()
+	os.Exit(0)
+
 	// We need a running geoclue agent
 	isRunning, err := geoClueAgentIsRunning(ctx)
 	if err != nil {
