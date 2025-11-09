@@ -1,0 +1,191 @@
+package geobus
+
+import (
+	"context"
+	"sync"
+	"time"
+
+	"app/internal/logger"
+)
+
+const (
+	accuracyEpsilon   = 1e-6
+	confidenceEpsilon = 1e-9
+	initialBackoff    = time.Second
+	maxBackoff        = 30 * time.Second
+)
+
+// Provider defines an interface for geolocation service providers.
+// It supports retrieving streamed results for a given key.
+type Provider interface {
+	Name() string
+	LookupStream(ctx context.Context, key string) <-chan Result
+}
+
+// GeoBus coordinates the publishing and subscribing of geolocation results between providers and consumers.
+type GeoBus struct {
+	mu          sync.RWMutex
+	logger      *logger.Logger
+	best        map[string]Result
+	subscribers map[string]map[chan Result]struct{}
+	globalSubs  map[chan Result]struct{}
+}
+
+// Result represents a geolocation result with associated metadata.
+type Result struct {
+	Key            string
+	Lat, Lon       float64
+	AccuracyMeters float64
+	Confidence     float64
+	Source         string
+	At             time.Time
+	TTL            time.Duration
+}
+
+// BetterThan compares two Result objects to determine if the current instance is better than the provided one.
+// Returns true if the current Result is more accurate, more confident, or more recent than the other.
+// Considers accuracy, confidence level, and timestamp for the comparison with small tolerances for precision.
+func (r Result) BetterThan(other Result) bool {
+	if other.Key == "" {
+		return true
+	}
+	if r.AccuracyMeters < other.AccuracyMeters-accuracyEpsilon {
+		return true
+	}
+	if other.AccuracyMeters < r.AccuracyMeters-accuracyEpsilon {
+		return false
+	}
+	if r.Confidence > other.Confidence+confidenceEpsilon {
+		return true
+	}
+	if other.Confidence > r.Confidence+confidenceEpsilon {
+		return false
+	}
+	return r.At.After(other.At)
+}
+
+// IsExpired checks if the Result has exceeded its time-to-live (TTL) based on the current time and the timestamp.
+func (r Result) IsExpired() bool {
+	return r.TTL > 0 && time.Since(r.At) > r.TTL
+}
+
+// New initializes and returns a new instance of GeoBus to handle geolocation result coordination.
+func New(logger *logger.Logger) *GeoBus {
+	return &GeoBus{
+		logger:      logger,
+		best:        make(map[string]Result),
+		subscribers: make(map[string]map[chan Result]struct{}),
+		globalSubs:  make(map[chan Result]struct{}),
+	}
+}
+
+func (b *GeoBus) NewOrchestrator(provider []Provider) *Orchestrator {
+	return &Orchestrator{
+		Bus:       b,
+		Providers: provider,
+	}
+}
+
+// Subscribe adds a subscriber for updates associated with the given key and buffer size, returning a result
+// channel and an unsubscribe function.
+func (b *GeoBus) Subscribe(key string, size int) (<-chan Result, func()) {
+	resultChan := make(chan Result, size)
+	b.mu.Lock()
+	if _, ok := b.subscribers[key]; !ok {
+		b.subscribers[key] = make(map[chan Result]struct{})
+	}
+
+	b.subscribers[key][resultChan] = struct{}{}
+	if best, ok := b.best[key]; ok && !best.IsExpired() {
+		resultChan <- best
+	}
+	b.mu.Unlock()
+
+	unsub := func() {
+		b.mu.Lock()
+		if subs, ok := b.subscribers[key]; ok {
+			delete(subs, resultChan)
+			if len(subs) == 0 {
+				delete(b.subscribers, key)
+			}
+		}
+		b.mu.Unlock()
+		close(resultChan)
+	}
+
+	return resultChan, unsub
+}
+
+func (b *GeoBus) SubscribeAll(buffer int) (<-chan Result, func()) {
+	ch := make(chan Result, buffer)
+	b.mu.Lock()
+	b.globalSubs[ch] = struct{}{}
+	for _, v := range b.best {
+		if !v.IsExpired() {
+			ch <- v
+		}
+	}
+	b.mu.Unlock()
+	unsub := func() {
+		b.mu.Lock()
+		delete(b.globalSubs, ch)
+		b.mu.Unlock()
+		close(ch)
+	}
+	return ch, unsub
+}
+
+func (b *GeoBus) Publish(r Result) {
+	if r.At.IsZero() {
+		r.At = time.Now()
+	}
+	b.mu.Lock()
+	prev, have := b.best[r.Key]
+	if !have || prev.IsExpired() || r.BetterThan(prev) {
+		b.best[r.Key] = r
+		b.broadcastResult(r)
+	}
+	b.mu.Unlock()
+}
+
+func (b *GeoBus) broadcastResult(r Result) {
+	if subs, ok := b.subscribers[r.Key]; ok {
+		for ch := range subs {
+			select {
+			case ch <- r:
+			default:
+			}
+		}
+	}
+	for ch := range b.globalSubs {
+		select {
+		case ch <- r:
+		default:
+		}
+	}
+}
+
+func (b *GeoBus) Best(key string) (Result, bool) {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	r, ok := b.best[key]
+	return r, ok && !r.IsExpired()
+}
+
+func sleepOrDone(ctx context.Context, d time.Duration) bool {
+	t := time.NewTimer(d)
+	defer t.Stop()
+	select {
+	case <-ctx.Done():
+		return false
+	case <-t.C:
+		return true
+	}
+}
+
+func nextBackoff(d time.Duration) time.Duration {
+	if d *= 2; d > maxBackoff {
+		return maxBackoff
+	}
+	return d
+}

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-package main
+package config
 
 import (
 	"fmt"
@@ -23,8 +23,8 @@ const (
 		"Moonphase: {{.MoonphaseIcon}} {{.Moonphase}}\nForcast for: {{timeFormat .WeatherDateForTime \"15:04\"}}"
 )
 
-// config represents the application's configuration structure.
-type config struct {
+// Config represents the application's configuration structure.
+type Config struct {
 	// Allowed values: metric, imperial
 	Units    string     `fig:"units" default:"metric"`
 	Locale   string     `fig:"locale"`
@@ -45,29 +45,29 @@ type config struct {
 	} `fig:"templates"`
 }
 
-func newConfigFromFile(path, file string) (*config, error) {
-	conf := new(config)
+func NewFromFile(path, file string) (*Config, error) {
+	conf := new(Config)
 	_, err := os.Stat(filepath.Join(path, file))
 	if err != nil {
-		return conf, fmt.Errorf("failed to read config: %w", err)
+		return conf, fmt.Errorf("failed to read Config: %w", err)
 	}
 	if err = fig.Load(conf, fig.Dirs(path), fig.File(file), fig.UseEnv(configEnv)); err != nil {
-		return conf, fmt.Errorf("failed to load config: %w", err)
+		return conf, fmt.Errorf("failed to load Config: %w", err)
 	}
 
 	return conf, conf.Validate()
 }
 
-func newConfig() (*config, error) {
-	conf := new(config)
+func New() (*Config, error) {
+	conf := new(Config)
 	if err := fig.Load(conf, fig.AllowNoFile(), fig.UseEnv(configEnv)); err != nil {
-		return conf, fmt.Errorf("failed to load config: %w", err)
+		return conf, fmt.Errorf("failed to load Config: %w", err)
 	}
 
 	return conf, conf.Validate()
 }
 
-func (c *config) Validate() error {
+func (c *Config) Validate() error {
 	if c.Units != "metric" && c.Units != "imperial" {
 		return fmt.Errorf("invalid units: %s", c.Units)
 	}

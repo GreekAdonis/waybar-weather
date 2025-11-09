@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/doppiogancio/go-nominatim/shared"
+
+	"app/internal/config"
 )
 
 type DisplayData struct {
@@ -38,7 +40,7 @@ type Templates struct {
 	Tooltip *template.Template
 }
 
-func NewTemplate(conf *config) (*Templates, error) {
+func NewTemplate(conf *config.Config) (*Templates, error) {
 	tpls := new(Templates)
 	tpl, err := template.New("text").Funcs(templateFuncMap()).Parse(conf.Templates.Text)
 	if err != nil {

@@ -6,15 +6,18 @@ package main
 
 import (
 	"context"
+	"time"
 
 	"github.com/hectormalot/omgo"
+
+	"app/internal/logger"
 )
 
+const FetchTimeout = time.Second * 10
+
 func (s *Service) fetchWeather(ctx context.Context) {
-	s.weatherLock.Lock()
-	defer s.weatherLock.Unlock()
-	s.locationLock.RLock()
-	defer s.locationLock.RUnlock()
+	ctxFetch, cancelFetch := context.WithTimeout(ctx, FetchTimeout)
+	defer cancelFetch()
 
 	if s.address == nil {
 		return
@@ -37,11 +40,16 @@ func (s *Service) fetchWeather(ctx context.Context) {
 		opts.WindspeedUnit = "mph"
 	}
 
-	forecast, err := s.omclient.Forecast(ctx, s.location, opts)
+	s.locationLock.RLock()
+	defer s.locationLock.RUnlock()
+	forecast, err := s.omclient.Forecast(ctxFetch, s.location, opts)
 	if err != nil {
-		s.logger.Error("failed to get forecast data", logError(err))
+		s.logger.Error("failed to get forecast data", logger.Err(err))
 		return
 	}
+
+	s.weatherLock.Lock()
+	defer s.weatherLock.Unlock()
 	s.weather = forecast
 	s.weatherIsSet = true
 }

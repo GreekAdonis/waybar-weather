@@ -15,6 +15,9 @@ import (
 	"os/signal"
 	"path/filepath"
 	"syscall"
+
+	"app/internal/config"
+	"app/internal/logger"
 )
 
 var (
@@ -28,47 +31,33 @@ func main() {
 		syscall.SIGABRT, os.Interrupt)
 	defer cancel()
 
-	// Initialize logger
-	log := newLogger(slog.LevelError)
+	// Initialize Logger
+	log := logger.NewLogger(slog.LevelError)
 
-	// Read config
-	confPath := flag.String("config", "", "path to the config file")
+	// Read Config
+	confPath := flag.String("Config", "", "path to the Config file")
 	flag.Parse()
-	conf, err := newConfig()
+	conf, err := config.New()
 	if err != nil {
-		log.Error("failed to load config", logError(err))
+		log.Error("failed to load Config", logger.Err(err))
 		os.Exit(1)
 	}
 	if *confPath != "" {
 		file := filepath.Base(*confPath)
 		path := filepath.Dir(*confPath)
-		conf, err = newConfigFromFile(path, file)
+		conf, err = config.NewFromFile(path, file)
 		if err != nil {
-			log.Error("failed to load config from file", logError(err))
+			log.Error("failed to load Config from file", logger.Err(err))
 			os.Exit(1)
 		}
 	}
-	log = newLogger(conf.LogLevel)
+	log = logger.NewLogger(conf.LogLevel)
 	log.Debug("weather mode", slog.String("mode", conf.WeatherMode))
-
-	geolocate()
-	os.Exit(0)
-
-	// We need a running geoclue agent
-	isRunning, err := geoClueAgentIsRunning(ctx)
-	if err != nil {
-		log.Error("failed to check if geoclue agent is running", logError(err))
-		os.Exit(1)
-	}
-	if !isRunning {
-		log.Error("required geoclue agent is not running, shutting down")
-		os.Exit(1)
-	}
 
 	// Initialize the service
 	service, err := New(conf, log)
 	if err != nil {
-		log.Error("failed to initialize waybar-weather service", logError(err))
+		log.Error("failed to initialize waybar-weather service", logger.Err(err))
 		os.Exit(1)
 	}
 
@@ -76,7 +65,7 @@ func main() {
 	log.Info("starting waybar-weather service", slog.String("version", version),
 		slog.String("commit", commit), slog.String("date", date))
 	if err = service.Run(ctx); err != nil {
-		log.Error("failed to start waybar-weather service", logError(err))
+		log.Error("failed to start waybar-weather service", logger.Err(err))
 	}
 	log.Info("shutting down waybar-weather service")
 }
