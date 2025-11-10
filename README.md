@@ -29,7 +29,6 @@ allowing you to always see the weather data for your current location.
 * (Optional) Ideally an active WiFi connectivity for ICHNAEA geolocation service (more precise location lookup).
 
 ## Screenshots
-![Full desktop view](assets/full.png)
 ![Detailed tooltip view](assets/detail.png)
 
 ## Installation
