@@ -23,6 +23,7 @@ import (
 
 	"app/internal/config"
 	"app/internal/geobus"
+	"app/internal/geobus/provider/geoapi"
 	"app/internal/geobus/provider/geoip"
 	"app/internal/geobus/provider/geolocation_file"
 	"app/internal/geobus/provider/ichnaea"
@@ -125,6 +126,10 @@ func (s *Service) createOrchestrator() *geobus.Orchestrator {
 
 	if !s.config.GeoLocation.DisableGeoIP {
 		provider = append(provider, geoip.NewGeolocationGeoIPProvider(httpClient))
+	}
+
+	if !s.config.GeoLocation.DisableGeoAPI {
+		provider = append(provider, geoapi.NewGeolocationGeoAPIProvider(httpClient))
 	}
 
 	if !s.config.GeoLocation.DisableICHNAEA {

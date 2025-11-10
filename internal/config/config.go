@@ -47,6 +47,7 @@ type Config struct {
 	GeoLocation struct {
 		File                   string `fig:"file"`
 		DisableGeoIP           bool   `fig:"disable_geoip"`
+		DisableGeoAPI          bool   `fig:"disable_geoapi"`
 		DisableGeolocationFile bool   `fig:"disable_geolocation_file"`
 		DisableICHNAEA         bool   `fig:"disable_ichnaea"`
 	} `fig:"geolocation"`

@@ -1,8 +1,9 @@
-package geoip
+package geoapi
 
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"app/internal/geobus"
@@ -10,7 +11,7 @@ import (
 )
 
 const (
-	APIEndpoint   = "https://reallyfreegeoip.org/json/"
+	APIEndpoint   = "https://geoapi.info/api/geo"
 	LookupTimeout = time.Second * 5
 )
 
@@ -28,7 +29,7 @@ const (
 	ConvidenceUnknown = 0.1
 )
 
-type GeolocationGeoIPProvider struct {
+type GeolocationGeoAPIProvider struct {
 	name   string
 	result geobus.Result
 	http   *http.Client
@@ -37,35 +38,37 @@ type GeolocationGeoIPProvider struct {
 }
 
 type APIResult struct {
-	IP          string  `json:"ip"`
-	CountryCode string  `json:"country_code"`
-	Country     string  `json:"country_name"`
-	RegionCode  string  `json:"region_code,omitempty"`
-	Region      string  `json:"region_name,omitempty"`
-	City        string  `json:"city,omitempty"`
-	ZipCode     string  `json:"zip_code,omitempty"`
-	TimeZone    string  `json:"time_zone"`
-	Latitude    float64 `json:"latitude"`
-	Longitude   float64 `json:"longitude"`
-	MetroCode   int     `json:"metro_code"`
+	IP       string `json:"ip"`
+	Location struct {
+		CountryCode string `json:"country,omitempty"`
+		Country     string `json:"countryName,omitempty"`
+		Region      string `json:"region_name,omitempty"`
+		City        string `json:"city,omitempty"`
+		ZipCode     string `json:"postalCode,omitempty"`
+		TimeZone    string `json:"timezone"`
+		Coordinates struct {
+			Latitude  string `json:"latitude"`
+			Longitude string `json:"longitude"`
+		} `json:"coordinates"`
+	} `json:"location"`
 }
 
-func NewGeolocationGeoIPProvider(http *http.Client) *GeolocationGeoIPProvider {
-	return &GeolocationGeoIPProvider{
-		name:   "geoip",
+func NewGeolocationGeoAPIProvider(http *http.Client) *GeolocationGeoAPIProvider {
+	return &GeolocationGeoAPIProvider{
+		name:   "geoapi",
 		http:   http,
-		period: 30 * time.Minute,
-		ttl:    60 * time.Minute,
+		period: 10 * time.Minute,
+		ttl:    20 * time.Minute,
 	}
 }
 
-func (p *GeolocationGeoIPProvider) Name() string {
+func (p *GeolocationGeoAPIProvider) Name() string {
 	return p.name
 }
 
 // LookupStream continuously streams geolocation results from a file, emitting updates when data changes
 // or context ends.
-func (p *GeolocationGeoIPProvider) LookupStream(ctx context.Context, key string) <-chan geobus.Result {
+func (p *GeolocationGeoAPIProvider) LookupStream(ctx context.Context, key string) <-chan geobus.Result {
 	out := make(chan geobus.Result)
 	go func() {
 		defer close(out)
@@ -107,7 +110,7 @@ func (p *GeolocationGeoIPProvider) LookupStream(ctx context.Context, key string)
 }
 
 // createResult composes and returns a Result using provided geolocation data and metadata.
-func (p *GeolocationGeoIPProvider) createResult(key string, lat, lon, acc, con float64) geobus.Result {
+func (p *GeolocationGeoAPIProvider) createResult(key string, lat, lon, acc, con float64) geobus.Result {
 	return geobus.Result{
 		Key:            key,
 		Lat:            lat,
@@ -120,7 +123,7 @@ func (p *GeolocationGeoIPProvider) createResult(key string, lat, lon, acc, con f
 	}
 }
 
-func (p *GeolocationGeoIPProvider) locate(ctx context.Context) (lat, lon, acc, con float64, err error) {
+func (p *GeolocationGeoAPIProvider) locate(ctx context.Context) (lat, lon, acc, con float64, err error) {
 	ctxHttp, cancelHttp := context.WithTimeout(ctx, LookupTimeout)
 	defer cancelHttp()
 
@@ -131,22 +134,31 @@ func (p *GeolocationGeoIPProvider) locate(ctx context.Context) (lat, lon, acc, c
 
 	acc = AccuarcyUnknown
 	con = ConvidenceUnknown
-	if result.CountryCode != "" {
+	if result.Location.CountryCode != "" {
 		acc = AccuracyCountry
 		con = ConvidenceCountry
 	}
-	if result.RegionCode != "" {
+	if result.Location.Region != "" {
 		acc = AccuracyRegion
 		con = ConvidenceRegion
 	}
-	if result.City != "" {
+	if result.Location.City != "" {
 		acc = AccuracyCity
 		con = ConvidenceCity
 	}
-	if result.ZipCode != "" {
+	if result.Location.ZipCode != "" {
 		acc = AccuracyZip
 		con = ConvidenceZip
 	}
 
-	return result.Latitude, result.Longitude, acc, con, nil
+	lat, err = strconv.ParseFloat(result.Location.Coordinates.Latitude, 64)
+	if err != nil {
+		return 0, 0, 0, 0, fmt.Errorf("failed to parse latitude from API response: %w", err)
+	}
+	lon, err = strconv.ParseFloat(result.Location.Coordinates.Longitude, 64)
+	if err != nil {
+		return 0, 0, 0, 0, fmt.Errorf("failed to parse longitude from API response: %w", err)
+	}
+
+	return lat, lon, acc, con, nil
 }

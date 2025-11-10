@@ -113,6 +113,11 @@ The GeoIP lookup provider uses  [https://reallyfreegeoip.org](https://reallyfree
 your IP and the resulting location based of that IP address. Depending on your ISP, the result might 
 be very inaccurate
 
+### GeoAPI lookup
+The GeoAPI lookup provider uses the [GeoAPI](https://geoapi.info/) to look up your location. It has 
+shown to be more accurate than the GeoIP lookup provider but will not be as accurate as the ICHNAEA
+provider.
+
 ### ICHNAEA
 The ICHNAEA location provider uses the Mozilla Location Service protocol to look up your location at
 [beaconDB](https://beacondb.net/). To get your location it will look for WiFi interfaces on your computer
