@@ -35,12 +35,12 @@ func main() {
 	// Initialize Logger
 	log := logger.NewLogger(slog.LevelError)
 
-	// Read Config
-	confPath := flag.String("Config", "", "path to the Config file")
+	// Read config
+	confPath := flag.String("config", "", "path to the config file")
 	flag.Parse()
 	conf, err := config.New()
 	if err != nil {
-		log.Error("failed to load Config", logger.Err(err))
+		log.Error("failed to load config", logger.Err(err))
 		os.Exit(1)
 	}
 	if *confPath != "" {
@@ -48,12 +48,11 @@ func main() {
 		path := filepath.Dir(*confPath)
 		conf, err = config.NewFromFile(path, file)
 		if err != nil {
-			log.Error("failed to load Config from file", logger.Err(err))
+			log.Error("failed to load config from file", logger.Err(err))
 			os.Exit(1)
 		}
 	}
 	log = logger.NewLogger(conf.LogLevel)
-	log.Debug("weather mode", slog.String("mode", conf.WeatherMode))
 
 	// Initialize the service
 	serv, err := service.New(conf, log)
