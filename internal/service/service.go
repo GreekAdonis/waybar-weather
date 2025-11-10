@@ -288,7 +288,7 @@ func (s *Service) updateLocation(ctx context.Context, latitude, longitude float6
 	s.address = address
 	s.location = location
 	s.locationLock.Unlock()
-	s.logger.Debug("address successfully resolved", slog.Any("address", s.address),
+	s.logger.Debug("address successfully resolved", slog.Any("address", s.address.DisplayName),
 		slog.Any("location", s.location))
 
 	s.fetchWeather(ctx)
