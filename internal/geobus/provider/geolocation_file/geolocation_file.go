@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"app/internal/geobus"
+	"github.com/wneessen/waybar-weather/internal/geobus"
 )
 
 // Accuracy is the default accuracy value for geolocation data. We consider geolocation file data as

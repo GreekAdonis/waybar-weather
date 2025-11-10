@@ -14,22 +14,22 @@ import (
 	"sync"
 	"time"
 
+	"github.com/wneessen/waybar-weather/internal/config"
+	"github.com/wneessen/waybar-weather/internal/geobus"
+	"github.com/wneessen/waybar-weather/internal/geobus/provider/geoapi"
+	"github.com/wneessen/waybar-weather/internal/geobus/provider/geoip"
+	"github.com/wneessen/waybar-weather/internal/geobus/provider/geolocation_file"
+	"github.com/wneessen/waybar-weather/internal/geobus/provider/ichnaea"
+	"github.com/wneessen/waybar-weather/internal/http"
+	"github.com/wneessen/waybar-weather/internal/logger"
+	"github.com/wneessen/waybar-weather/internal/template"
+
 	nominatim "github.com/doppiogancio/go-nominatim"
 	"github.com/doppiogancio/go-nominatim/shared"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/hectormalot/omgo"
 	"github.com/nathan-osman/go-sunrise"
 	"github.com/wneessen/go-moonphase"
-
-	"app/internal/config"
-	"app/internal/geobus"
-	"app/internal/geobus/provider/geoapi"
-	"app/internal/geobus/provider/geoip"
-	"app/internal/geobus/provider/geolocation_file"
-	"app/internal/geobus/provider/ichnaea"
-	"app/internal/http"
-	"app/internal/logger"
-	"app/internal/template"
 )
 
 const (

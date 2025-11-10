@@ -15,7 +15,7 @@ import (
 	"runtime"
 	"time"
 
-	"app/internal/logger"
+	"github.com/wneessen/waybar-weather/internal/logger"
 )
 
 const (

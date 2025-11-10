@@ -16,9 +16,9 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"app/internal/config"
-	"app/internal/logger"
-	"app/internal/service"
+	"github.com/wneessen/waybar-weather/internal/config"
+	"github.com/wneessen/waybar-weather/internal/logger"
+	"github.com/wneessen/waybar-weather/internal/service"
 )
 
 var (

@@ -9,9 +9,9 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/doppiogancio/go-nominatim/shared"
+	"github.com/wneessen/waybar-weather/internal/config"
 
-	"app/internal/config"
+	"github.com/doppiogancio/go-nominatim/shared"
 )
 
 type DisplayData struct {

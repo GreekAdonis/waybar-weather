@@ -8,9 +8,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/hectormalot/omgo"
+	"github.com/wneessen/waybar-weather/internal/logger"
 
-	"app/internal/logger"
+	"github.com/hectormalot/omgo"
 )
 
 const FetchTimeout = time.Second * 10

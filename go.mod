@@ -1,4 +1,4 @@
-module app
+module github.com/wneessen/waybar-weather
 
 go 1.25.3
 

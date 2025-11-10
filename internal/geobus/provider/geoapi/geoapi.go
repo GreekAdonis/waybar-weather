@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"time"
 
-	"app/internal/geobus"
-	"app/internal/http"
+	"github.com/wneessen/waybar-weather/internal/geobus"
+	"github.com/wneessen/waybar-weather/internal/http"
 )
 
 const (

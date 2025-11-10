@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mdlayher/wifi"
+	"github.com/wneessen/waybar-weather/internal/geobus"
+	"github.com/wneessen/waybar-weather/internal/http"
 
-	"app/internal/geobus"
-	"app/internal/http"
+	"github.com/mdlayher/wifi"
 )
 
 const (
