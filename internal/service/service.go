@@ -76,26 +76,13 @@ func New(conf *config.Config, log *logger.Logger) (*Service, error) {
 		return nil, fmt.Errorf("failed to parse templates: %w", err)
 	}
 
-	// HTTP client for API requests
-	httpClient := http.New(log)
-
-	// Geolocation bus and orchestrator
-	bus := geobus.New(log)
-	provider := []geobus.Provider{
-		geoip.NewGeolocationGeoIPProvider(httpClient),
-		ichnaea.NewGeolocationICHNAEAProvider(httpClient),
-		geolocation_file.NewGeolocationFileProvider(conf.GeoLocation.File),
-	}
-	orch := bus.NewOrchestrator(provider)
-
 	service := &Service{
-		config:       conf,
-		geobus:       bus,
-		logger:       log,
-		omclient:     omclient,
-		orchestrator: orch,
-		scheduler:    scheduler,
-		templates:    tpls,
+		config:    conf,
+		geobus:    geobus.New(log),
+		logger:    log,
+		omclient:  omclient,
+		scheduler: scheduler,
+		templates: tpls,
 	}
 	return service, nil
 }
@@ -110,8 +97,10 @@ func (s *Service) Run(ctx context.Context) error {
 		"weather_update_job"); err != nil {
 		return err
 	}
-
 	s.scheduler.Start()
+
+	// Create the orchestrator
+	s.orchestrator = s.createOrchestrator()
 
 	// Subscribe to geolocation updates from the geobus
 	sub, unsub := s.geobus.Subscribe(DesktopID, 32)
@@ -124,6 +113,30 @@ func (s *Service) Run(ctx context.Context) error {
 		unsub()
 	}
 	return s.scheduler.Shutdown()
+}
+
+func (s *Service) createOrchestrator() *geobus.Orchestrator {
+	httpClient := http.New(s.logger)
+	var provider []geobus.Provider
+
+	if !s.config.GeoLocation.DisableGeolocationFile {
+		provider = append(provider, geolocation_file.NewGeolocationFileProvider(s.config.GeoLocation.File))
+	}
+
+	if !s.config.GeoLocation.DisableGeoIP {
+		provider = append(provider, geoip.NewGeolocationGeoIPProvider(httpClient))
+	}
+
+	if !s.config.GeoLocation.DisableICHNAEA {
+		mls, err := ichnaea.NewGeolocationICHNAEAProvider(httpClient)
+		if err != nil {
+			s.logger.Error("failed to create ICHNAEA provider", logger.Err(err))
+		} else {
+			provider = append(provider, mls)
+		}
+	}
+
+	return s.geobus.NewOrchestrator(provider)
 }
 
 func (s *Service) createScheduledJob(ctx context.Context, interval time.Duration, task func(context.Context),

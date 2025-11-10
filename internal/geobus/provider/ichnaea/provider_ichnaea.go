@@ -1,9 +1,14 @@
 package ichnaea
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
+
+	"github.com/mdlayher/wifi"
 
 	"app/internal/geobus"
 	"app/internal/http"
@@ -18,31 +23,37 @@ type GeolocationICHNAEAProvider struct {
 	name   string
 	result geobus.Result
 	http   *http.Client
+	wlan   *wifi.Client
 	period time.Duration
 	ttl    time.Duration
 }
 
 type APIResult struct {
-	IP          string  `json:"ip"`
-	CountryCode string  `json:"country_code"`
-	Country     string  `json:"country_name"`
-	RegionCode  string  `json:"region_code,omitempty"`
-	Region      string  `json:"region_name,omitempty"`
-	City        string  `json:"city,omitempty"`
-	ZipCode     string  `json:"zip_code,omitempty"`
-	TimeZone    string  `json:"time_zone"`
-	Latitude    float64 `json:"latitude"`
-	Longitude   float64 `json:"longitude"`
-	MetroCode   int     `json:"metro_code"`
+	Location struct {
+		Latitude  float64 `json:"lat"`
+		Longitude float64 `json:"lng"`
+	} `json:"location"`
+	Accuracy float64 `json:"accuracy"`
 }
 
-func NewGeolocationICHNAEAProvider(http *http.Client) *GeolocationICHNAEAProvider {
+type WirelessNetwork struct {
+	LastSeen       int64  `json:"age"`
+	MACAddress     string `json:"macAddress"`
+	SignalStrength int32  `json:"signalStrength"`
+}
+
+func NewGeolocationICHNAEAProvider(http *http.Client) (*GeolocationICHNAEAProvider, error) {
+	wlan, err := wifi.New()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create wifi client: %w", err)
+	}
 	return &GeolocationICHNAEAProvider{
 		name:   "geoip",
 		http:   http,
+		wlan:   wlan,
 		period: 30 * time.Minute,
 		ttl:    60 * time.Minute,
-	}
+	}, nil
 }
 
 func (p *GeolocationICHNAEAProvider) Name() string {
@@ -107,14 +118,62 @@ func (p *GeolocationICHNAEAProvider) createResult(key string, lat, lon, alt, acc
 	}
 }
 
+func (p *GeolocationICHNAEAProvider) wifiList() ([]WirelessNetwork, error) {
+	var checkIfaces []*wifi.Interface
+	var list []WirelessNetwork
+
+	ifaces, err := p.wlan.Interfaces()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list interfaces: %w", err)
+	}
+	for _, iface := range ifaces {
+		if iface.Type != wifi.InterfaceTypeStation {
+			continue
+		}
+		checkIfaces = append(checkIfaces, iface)
+	}
+	if len(checkIfaces) == 0 {
+		return nil, nil
+	}
+
+	for _, iface := range checkIfaces {
+		aps, err := p.wlan.AccessPoints(iface)
+		if err != nil {
+			continue
+		}
+		for _, ap := range aps {
+			if ap.SSID == "" || ap.SSID[0] == '\x00' || strings.HasSuffix(ap.SSID, "_nomap") {
+				continue
+			}
+			list = append(list, WirelessNetwork{
+				SignalStrength: ap.Signal / 100,
+				MACAddress:     ap.BSSID.String(),
+				LastSeen:       ap.LastSeen.Milliseconds(),
+			})
+		}
+	}
+
+	return list, nil
+}
+
 func (p *GeolocationICHNAEAProvider) locate(ctx context.Context) (lat, lon, alt, acc, con float64, err error) {
+	wifiList, err := p.wifiList()
+	if err != nil {
+		return 0, 0, 0, 0, 0, fmt.Errorf("failed to retrieve wifi list: %w", err)
+	}
+	bodyBuffer := bytes.NewBuffer(nil)
+	if err = json.NewEncoder(bodyBuffer).Encode(wifiList); err != nil {
+		return 0, 0, 0, 0, 0, fmt.Errorf("failed to encode wifi list to JSON: %w", err)
+	}
+
 	ctxHttp, cancelHttp := context.WithTimeout(ctx, LookupTimeout)
 	defer cancelHttp()
 
 	result := new(APIResult)
-	if _, err = p.http.Get(ctxHttp, APIEndpoint, result, nil); err != nil {
+	if _, err = p.http.Post(ctxHttp, APIEndpoint, result, bodyBuffer,
+		map[string]string{"Content-Type": "application/json"}); err != nil {
 		return 0, 0, 0, 0, 0, fmt.Errorf("failed to get geolocation data from API: %w", err)
 	}
 
-	return result.Latitude, result.Longitude, 0, acc, con, nil
+	return result.Location.Latitude, result.Location.Longitude, 0, result.Accuracy, con, nil
 }

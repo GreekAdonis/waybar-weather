@@ -45,7 +45,10 @@ type Config struct {
 	} `fig:"templates"`
 
 	GeoLocation struct {
-		File string `fig:"file"`
+		File                   string `fig:"file"`
+		DisableGeoIP           bool   `fig:"disable_geoip"`
+		DisableGeolocationFile bool   `fig:"disable_geolocation_file"`
+		DisableICHNAEA         bool   `fig:"disable_ichnaea"`
 	} `fig:"geolocation"`
 }
 
