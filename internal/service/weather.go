@@ -26,7 +26,8 @@ func (s *Service) fetchWeather(ctx context.Context) {
 	opts := &omgo.Options{
 		Timezone: "auto",
 		HourlyMetrics: []string{
-			"temperature_2m", "weather_code", "wind_speed_10m", "is_day", "wind_direction_10m",
+			"temperature_2m", "apparent_temperature", "weather_code", "wind_speed_10m", "is_day",
+			"wind_direction_10m", "relative_humidity_2m", "pressure_msl",
 		},
 	}
 	switch s.config.Units {

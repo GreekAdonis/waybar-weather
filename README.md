@@ -140,6 +140,7 @@ set your own template in the configuration file in the `templates` section. Ther
 ### Variables
 The following variables are available for use in the templates:
 
+#### Location data
 | Variable                   | Type        | Description                                         |
 |----------------------------|-------------|-----------------------------------------------------|
 | `{{.Latitude}}`            | `float64`   | The latitude of your current location.              |
@@ -154,20 +155,47 @@ The following variables are available for use in the templates:
 | `{{.Address.Postcode}}`    | `string`    | The postcode of your current location.              |
 | `{{.Address.Country}}`     | `string`    | The country name of your current location.          |
 | `{{.Address.CountryCode}}` | `string`    | The country code of your current location.          |
-| `{{.UpdateTime}}`          | `time.Time` | The last time the weather data was updated.         |
-| `{{.WeatherDateForTime}}`  | `time.Time` | The date for the current/forecasted weather data.   |
-| `{{.Temperature}}`         | `float64`   | The current temperature.                            |
-| `{{.WeatherCode}}`         | `float64`   | The current weather code.                           |
-| `{{.WindDirection}}`       | `float64`   | The current wind direction.                         |
-| `{{.WindSpeed}}`           | `float64`   | The current wind speed.                             |
-| `{{.IsDaytime}}`           | `bool`      | Is true if it is currently daytime.                 |
-| `{{.TempUnit}}`            | `string`    | The temperature unit.                               |
-| `{{.SunsetTime}}`          | `time.Time` | The time of sunset.                                 |
-| `{{.SunriseTime}}`         | `time.Time` | The time of sunrise.                                |
-| `{{.ConditionIcon}}`       | `string`    | The current weather condition icon.                 |
-| `{{.Condition}}`           | `string`    | The current weather condition.                      |
-| `{{.Moonphase}}`           | `string`    | The current moon phase.                             |
-| `{{.MoonphaseIcon}}`       | `string`    | The current moon phase icon.                        |
+
+#### General weather and moon phase data
+| Variable                      | Type        | Description                                            |
+|-------------------------------|-------------|--------------------------------------------------------|
+| `{{.UpdateTime}}`             | `time.Time` | The last time the weather data was updated.            |
+| `{{.TempUnit}}`               | `string`    | The temperature unit.                                  |
+| `{{.PressureUnit}}`           | `string`    | The pressure unit.                                     |
+| `{{.SunsetTime}}`             | `time.Time` | The time of sunset.                                    |
+| `{{.SunriseTime}}`            | `time.Time` | The time of sunrise.                                   |
+| `{{.Moonphase}}`              | `string`    | The current moon phase.                                |
+| `{{.MoonphaseIcon}}`          | `string`    | The current moon phase icon.                           |
+| `{{.MoonphaseIconWithSpace}}` | `string`    | The current moon phase icon with leading Unicode space |
+
+#### Specific data points for current weather and forecasted weather
+| Variable                               | Type        | Description                                               |
+|----------------------------------------|-------------|-----------------------------------------------------------|
+| `{{.Current.WeatherDateForTime}}`      | `time.Time` | The date for the current weather data.                    |
+| `{{.Current.Temperature}}`             | `float64`   | The current temperature.                                  |
+| `{{.Current.ApparentTemperature}}`     | `float64`   | The current apparent temperature.                         |
+| `{{.Current.Humidity}}`                | `float64`   | The current humidity.                                     |
+| `{{.Current.PressureMSL}}`             | `float64`   | The current pressure at mean sea level.                   |
+| `{{.Current.WeatherCode}}`             | `float64`   | The current WMO weather code.                             |
+| `{{.Current.WindDirection}}`           | `float64`   | The current wind direction.                               |
+| `{{.Current.WindSpeed}}`               | `float64`   | The current wind speed.                                   |
+| `{{.Current.Condition}}`               | `string`    | The current weather condition as text.                    |
+| `{{.Current.ConditionIcon}}`           | `string`    | The current weather condition icon.                       |
+| `{{.Current.ConditionIconWithSpace}}`  | `string`    | The current weather condition icon with Unicode space.    |
+| `{{.Current.IsDaytime}}`               | `bool`      | Is true if it is currently daytime.                       |
+| `{{.Forecast.WeatherDateForTime}}`     | `time.Time` | The date for the current weather data.                    |
+| `{{.Forecast.Temperature}}`            | `float64`   | The forecasted temperature.                               |
+| `{{.Forecast.ApparentTemperature}}`    | `float64`   | The forecasted apparent temperature.                      |
+| `{{.Forecast.Humidity}}`               | `float64`   | The forecasted humidity.                                  |
+| `{{.Forecast.PressureMSL}}`            | `float64`   | The forecasted pressure at mean sea level.                |
+| `{{.Forecast.WeatherCode}}`            | `float64`   | The forecasted WMO weather code.                          |
+| `{{.Forecast.WindDirection}}`          | `float64`   | The forecasted wind direction.                            |
+| `{{.Forecast.WindSpeed}}`              | `float64`   | The forecasted wind speed.                                |
+| `{{.Forecast.Condition}}`              | `string`    | The forecasted weather condition as text.                 |
+| `{{.Forecast.ConditionIcon}}`          | `string`    | The forecasted weather condition icon.                    |
+| `{{.Forecast.ConditionIconWithSpace}}` | `string`    | The forecasted weather condition icon with Unicode space. |
+| `{{.Forecast.IsDaytime}}`              | `bool`      | Is true if it is daytime at the forcasted time.           |
+
 
 ## Formatting functions
 waybar-weather comes with a set of formatting functions that can be used to manipulate the output of

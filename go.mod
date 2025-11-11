@@ -7,12 +7,14 @@ require (
 	github.com/go-co-op/gocron/v2 v2.18.0
 	github.com/hectormalot/omgo v0.1.3
 	github.com/kkyr/fig v0.5.0
+	github.com/mattn/go-runewidth v0.0.19
 	github.com/mdlayher/wifi v0.7.0
 	github.com/nathan-osman/go-sunrise v1.1.0
 	github.com/wneessen/go-moonphase v0.0.0-20251108174843-0043855bd40d
 )
 
 require (
+	github.com/clipperhouse/uax29/v2 v2.2.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/jonboulle/clockwork v0.5.0 // indirect

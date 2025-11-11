@@ -6,33 +6,51 @@ package template
 
 import (
 	"fmt"
+	"strings"
 	"text/template"
 	"time"
 
 	"github.com/wneessen/waybar-weather/internal/config"
 
 	"github.com/doppiogancio/go-nominatim/shared"
+	"github.com/mattn/go-runewidth"
 )
 
 type DisplayData struct {
-	Latitude           float64
-	Longitude          float64
-	Elevation          float64
-	Address            shared.Address
-	UpdateTime         time.Time
-	WeatherDateForTime time.Time
-	Temperature        float64
-	WeatherCode        float64
-	WindDirection      float64
-	WindSpeed          float64
-	IsDaytime          bool
-	TempUnit           string
-	SunsetTime         time.Time
-	SunriseTime        time.Time
-	ConditionIcon      string
-	Condition          string
-	Moonphase          string
-	MoonphaseIcon      string
+	// Location data
+	Latitude  float64
+	Longitude float64
+	Elevation float64
+	Address   shared.Address
+
+	// General weather and moon phase data
+	UpdateTime             time.Time
+	TempUnit               string
+	PressureUnit           string
+	SunsetTime             time.Time
+	SunriseTime            time.Time
+	Moonphase              string
+	MoonphaseIcon          string
+	MoonphaseIconWithSpace string
+
+	// Current weather and forecast data
+	Current  WeatherData
+	Forecast WeatherData
+}
+
+type WeatherData struct {
+	WeatherDateForTime     time.Time
+	Temperature            float64
+	ApparentTemperature    float64
+	Humidity               float64
+	PressureMSL            float64
+	WeatherCode            float64
+	WindDirection          float64
+	WindSpeed              float64
+	ConditionIcon          string
+	ConditionIconWithSpace string
+	Condition              string
+	IsDaytime              bool
 }
 
 type Templates struct {
@@ -70,4 +88,9 @@ func timeFormat(val time.Time, fmt string) string {
 
 func floatFormat(val float64, precision int) string {
 	return fmt.Sprintf("%.*f", precision, val)
+}
+
+func EmojiWithSpace(emoji string) string {
+	width := runewidth.StringWidth(emoji)
+	return fmt.Sprintf("%s%s", emoji, strings.Repeat(" ", width+1))
 }
