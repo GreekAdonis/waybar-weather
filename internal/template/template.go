@@ -35,14 +35,15 @@ type DisplayData struct {
 }
 
 type WeatherData struct {
-	WeatherDateForTime time.Time
-	Temperature        float64
-	WeatherCode        float64
-	WindDirection      float64
-	WindSpeed          float64
-	ConditionIcon      string
-	Condition          string
-	IsDaytime          bool
+	WeatherDateForTime  time.Time
+	Temperature         float64
+	ApparentTemperature float64
+	WeatherCode         float64
+	WindDirection       float64
+	WindSpeed           float64
+	ConditionIcon       string
+	Condition           string
+	IsDaytime           bool
 }
 
 type Templates struct {

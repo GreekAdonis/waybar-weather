@@ -223,7 +223,7 @@ func (s *Service) fillDisplayData(target *template.DisplayData) {
 		return
 	}
 
-	// Coordinate data
+	// Coordinates and address data
 	target.Latitude = s.weather.Latitude
 	target.Longitude = s.weather.Longitude
 	target.Elevation = s.weather.Elevation
@@ -238,6 +238,8 @@ func (s *Service) fillDisplayData(target *template.DisplayData) {
 
 	// Generel weather data
 	now := time.Now()
+	nowHour := now.Truncate(time.Hour)
+	nowIdx := s.weatherIndexByTime(nowHour)
 	target.UpdateTime = s.weather.CurrentWeather.Time.Time
 	target.TempUnit = s.weather.HourlyUnits["temperature_2m"]
 	sunriseTimeUTC, sunsetTimeUTC := sunrise.SunriseSunset(s.weather.Latitude, s.weather.Longitude, now.Year(),
@@ -256,31 +258,28 @@ func (s *Service) fillDisplayData(target *template.DisplayData) {
 	target.Current.WeatherDateForTime = s.weather.CurrentWeather.Time.Time
 	target.Current.ConditionIcon = WMOWeatherIcons[target.Current.WeatherCode][target.Current.IsDaytime]
 	target.Current.Condition = WMOWeatherCodes[target.Current.WeatherCode]
+	if nowIdx != -1 {
+		target.Current.ApparentTemperature = s.weather.HourlyMetrics["apparent_temperature"][nowIdx]
+	}
 
 	// Forecast weather data
 	fcastHours := time.Duration(s.config.Weather.ForecastHours) * time.Hour //nolint:gosec
 	fcastTime := now.Add(fcastHours).Truncate(time.Hour)
-	idx := -1
-	for i, t := range s.weather.HourlyTimes {
-		if t.Equal(fcastTime) {
-			idx = i
-			break
-		}
-	}
-	if idx == -1 {
-		return
-	}
+	fcastIdx := s.weatherIndexByTime(fcastTime)
 	target.Forecast.IsDaytime = false
 	if s.weather.HourlyUnits["is_day"] == "1" {
 		target.Forecast.IsDaytime = true
 	}
-	target.Forecast.Temperature = s.weather.HourlyMetrics["temperature_2m"][idx]
-	target.Forecast.WeatherCode = s.weather.HourlyMetrics["weather_code"][idx]
-	target.Forecast.WindDirection = s.weather.HourlyMetrics["wind_direction_10m"][idx]
-	target.Forecast.WindSpeed = s.weather.HourlyMetrics["wind_speed_10m"][idx]
 	target.Forecast.WeatherDateForTime = fcastTime
 	target.Forecast.ConditionIcon = WMOWeatherIcons[target.Forecast.WeatherCode][target.Forecast.IsDaytime]
 	target.Forecast.Condition = WMOWeatherCodes[target.Forecast.WeatherCode]
+	if fcastIdx == -1 {
+		target.Forecast.Temperature = s.weather.HourlyMetrics["temperature_2m"][fcastIdx]
+		target.Forecast.ApparentTemperature = s.weather.HourlyMetrics["apparent_temperature"][fcastIdx]
+		target.Forecast.WeatherCode = s.weather.HourlyMetrics["weather_code"][fcastIdx]
+		target.Forecast.WindDirection = s.weather.HourlyMetrics["wind_direction_10m"][fcastIdx]
+		target.Forecast.WindSpeed = s.weather.HourlyMetrics["wind_speed_10m"][fcastIdx]
+	}
 }
 
 // updateLocation updates the service's location and address based on provided latitude and longitude.
@@ -332,4 +331,13 @@ func (s *Service) processLocationUpdates(ctx context.Context, sub <-chan geobus.
 			}
 		}
 	}
+}
+
+func (s *Service) weatherIndexByTime(atTime time.Time) int {
+	for i, t := range s.weather.HourlyTimes {
+		if t.Equal(atTime) {
+			return i
+		}
+	}
+	return -1
 }
