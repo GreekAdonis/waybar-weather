@@ -29,10 +29,11 @@ type Config struct {
 	Units    string     `fig:"units" default:"metric"`
 	Locale   string     `fig:"locale"`
 	LogLevel slog.Level `fig:"loglevel" default:"0"`
-	// Allowed values: current, forecast
-	WeatherMode string `fig:"weather_mode" default:"current"`
-	// Allowed value: 1 to 24
-	ForecastHours uint `fig:"forecast_hours" default:"3"`
+
+	Weather struct {
+		// Allowed value: 1 to 24
+		ForecastHours uint `fig:"forecast_hours" default:"3"`
+	} `fig:"weather"`
 
 	Intervals struct {
 		WeatherUpdate time.Duration `fig:"weather_update" default:"15m"`
@@ -82,11 +83,8 @@ func (c *Config) Validate() error {
 	if c.Locale == "" {
 		c.Locale = getLocale()
 	}
-	if c.WeatherMode != "current" && c.WeatherMode != "forecast" {
-		return fmt.Errorf("invalid weather mode: %s", c.WeatherMode)
-	}
-	if c.WeatherMode == "forecast" && c.ForecastHours < 1 || c.ForecastHours > 24 {
-		return fmt.Errorf("invalid forcast hours: %d", c.ForecastHours)
+	if c.Weather.ForecastHours < 1 || c.Weather.ForecastHours > 24 {
+		return fmt.Errorf("invalid forcast hours: %d", c.Weather.ForecastHours)
 	}
 	if c.Templates.Text == "" {
 		c.Templates.Text = DefaultTextTpl
