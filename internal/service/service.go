@@ -148,6 +148,10 @@ func (s *Service) createOrchestrator() *geobus.Orchestrator {
 			provider = append(provider, mls)
 		}
 	}
+	if len(provider) == 0 {
+		s.logger.Error("no geolocation providers enabled, will not be able to fetch weather data " + "" +
+			"due to missing location")
+	}
 
 	return s.geobus.NewOrchestrator(provider)
 }
