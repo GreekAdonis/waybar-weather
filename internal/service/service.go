@@ -116,6 +116,9 @@ func (s *Service) Run(ctx context.Context) error {
 	go s.processLocationUpdates(ctx, sub)
 	go s.orchestrator.Track(ctx, DesktopID)
 
+	// Detect sleep/wake events and update the weather
+	go s.monitorSleepResume(ctx)
+
 	// Wait for the context to cancel
 	<-ctx.Done()
 	if unsub != nil {

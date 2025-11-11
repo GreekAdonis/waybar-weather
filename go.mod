@@ -5,6 +5,7 @@ go 1.25.3
 require (
 	github.com/doppiogancio/go-nominatim v2.0.1+incompatible
 	github.com/go-co-op/gocron/v2 v2.18.0
+	github.com/godbus/dbus/v5 v5.1.0
 	github.com/hectormalot/omgo v0.1.3
 	github.com/kkyr/fig v0.5.0
 	github.com/mattn/go-runewidth v0.0.19

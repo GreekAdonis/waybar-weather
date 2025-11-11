@@ -20,7 +20,7 @@ builds:
       - amd64
     goamd64:
       - v1
-    main: .
+    main: ./cmd/waybar-weather/
     binary: waybar-weather
     ldflags:
       - -w -s -extldflags "-static" -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser -X github.com/wneessen/waybar-weather/internal/http.version={{.Version}}
