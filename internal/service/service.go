@@ -63,7 +63,7 @@ type Service struct {
 	weather      *omgo.Forecast
 
 	displayAltLock sync.RWMutex
-	displayAlt     bool
+	displayAltText bool
 }
 
 func New(conf *config.Config, log *logger.Logger) (*Service, error) {
@@ -83,13 +83,13 @@ func New(conf *config.Config, log *logger.Logger) (*Service, error) {
 	}
 
 	service := &Service{
-		config:     conf,
-		geobus:     geobus.New(log),
-		logger:     log,
-		omclient:   omclient,
-		scheduler:  scheduler,
-		templates:  tpls,
-		displayAlt: false,
+		config:         conf,
+		geobus:         geobus.New(log),
+		logger:         log,
+		omclient:       omclient,
+		scheduler:      scheduler,
+		templates:      tpls,
+		displayAltText: false,
 	}
 	return service, nil
 }
@@ -196,7 +196,7 @@ func (s *Service) printWeather(context.Context) {
 	}
 
 	s.displayAltLock.RLock()
-	displayAltText := s.displayAlt
+	displayAltText := s.displayAltText
 	s.displayAltLock.RUnlock()
 
 	displayData := new(template.DisplayData)
@@ -394,7 +394,7 @@ func (s *Service) handleAltTextToggleSignal(ctx context.Context, sigChan chan os
 			return
 		case <-sigChan:
 			s.displayAltLock.Lock()
-			s.displayAlt = !s.displayAlt
+			s.displayAltText = !s.displayAltText
 			s.displayAltLock.Unlock()
 			s.printWeather(ctx)
 		}
