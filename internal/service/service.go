@@ -24,10 +24,9 @@ import (
 	"github.com/wneessen/waybar-weather/internal/geobus/provider/ichnaea"
 	"github.com/wneessen/waybar-weather/internal/http"
 	"github.com/wneessen/waybar-weather/internal/logger"
+	"github.com/wneessen/waybar-weather/internal/nominatim"
 	"github.com/wneessen/waybar-weather/internal/template"
 
-	nominatim "github.com/doppiogancio/go-nominatim"
-	"github.com/doppiogancio/go-nominatim/shared"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/hectormalot/omgo"
 	"github.com/nathan-osman/go-sunrise"
@@ -49,14 +48,16 @@ type Service struct {
 	config       *config.Config
 	geobus       *geobus.GeoBus
 	logger       *logger.Logger
+	nominatim    *nominatim.Nominatim
 	omclient     omgo.Client
 	orchestrator *geobus.Orchestrator
 	scheduler    gocron.Scheduler
 	templates    *template.Templates
 
-	locationLock sync.RWMutex
-	address      *shared.Address
-	location     omgo.Location
+	locationLock  sync.RWMutex
+	address       nominatim.Address
+	locationIsSet bool
+	location      omgo.Location
 
 	weatherLock  sync.RWMutex
 	weatherIsSet bool
@@ -86,6 +87,7 @@ func New(conf *config.Config, log *logger.Logger) (*Service, error) {
 		config:         conf,
 		geobus:         geobus.New(log),
 		logger:         log,
+    nominatim: nominatim.New(http.New(log), conf),
 		omclient:       omclient,
 		scheduler:      scheduler,
 		templates:      tpls,
@@ -262,9 +264,7 @@ func (s *Service) fillDisplayData(target *template.DisplayData) {
 	target.Latitude = s.weather.Latitude
 	target.Longitude = s.weather.Longitude
 	target.Elevation = s.weather.Elevation
-	if s.address != nil {
-		target.Address = *s.address
-	}
+	target.Address = s.address
 
 	// Moon phase
 	m := moonphase.New(time.Now())
@@ -335,7 +335,7 @@ func (s *Service) updateLocation(ctx context.Context, latitude, longitude float6
 		return nil
 	}
 
-	address, err := nominatim.ReverseGeocode(latitude, longitude, s.config.Locale)
+	address, err := s.nominatim.Reverse(ctx, latitude, longitude)
 	if err != nil {
 		return fmt.Errorf("failed reverse geocode coordinates: %w", err)
 	}
@@ -345,8 +345,11 @@ func (s *Service) updateLocation(ctx context.Context, latitude, longitude float6
 	}
 
 	s.locationLock.Lock()
-	s.address = address
 	s.location = location
+	if address.Address != nil {
+		s.address = *address.Address
+	}
+	s.locationIsSet = true
 	s.locationLock.Unlock()
 	s.logger.Debug("address successfully resolved", slog.Any("address", s.address.DisplayName),
 		slog.Any("location", s.location))

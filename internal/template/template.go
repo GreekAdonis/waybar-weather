@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/wneessen/waybar-weather/internal/config"
+	"github.com/wneessen/waybar-weather/internal/nominatim"
 
-	"github.com/doppiogancio/go-nominatim/shared"
 	"github.com/mattn/go-runewidth"
 )
 
@@ -21,7 +21,7 @@ type DisplayData struct {
 	Latitude  float64
 	Longitude float64
 	Elevation float64
-	Address   shared.Address
+	Address   nominatim.Address
 
 	// General weather and moon phase data
 	UpdateTime             time.Time
